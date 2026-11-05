@@ -45,11 +45,10 @@ app.get('/api/status', (req, res) => {
 // Serve static frontend assets from production build
 app.use(express.static(distPath));
 
-// Client-side SPA fallback for all web routes
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api')) {
-    return next();
-  }
+// Client-side SPA fallback for all web routes (Express 5 compatible)
+app.use((req, res, next) => {
+  if (req.method !== 'GET') return next();
+  if (req.path.startsWith('/api')) return next();
   res.sendFile(path.join(distPath, 'index.html'), (err) => {
     if (err) {
       res.json({
