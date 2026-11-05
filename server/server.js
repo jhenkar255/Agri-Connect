@@ -1,12 +1,18 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { connectDB } from './db.js';
 import authRoutes from './routes/authRoutes.js';
 import appRoutes from './routes/appRoutes.js';
 import User from './models/User.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.join(__dirname, '../dist');
 
 const app = express();
 const PORT = process.env.PORT || 5050;
@@ -20,8 +26,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api', appRoutes);
 app.use('/api', authRoutes); // alias /api/health
 
-// Root health & status
-app.get('/', (req, res) => {
+// API health & status endpoint
+app.get('/api/status', (req, res) => {
   res.json({
     project: 'Agri-Connect Backend API',
     status: 'Running',
@@ -30,8 +36,29 @@ app.get('/', (req, res) => {
       'POST /api/auth/register',
       'POST /api/auth/login',
       'GET /api/auth/users',
-      'GET /api/health'
+      'GET /api/health',
+      'GET /api/stats'
     ]
+  });
+});
+
+// Serve static frontend assets from production build
+app.use(express.static(distPath));
+
+// Client-side SPA fallback for all web routes
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(distPath, 'index.html'), (err) => {
+    if (err) {
+      res.json({
+        project: 'Agri-Connect Backend API',
+        status: 'Running',
+        database: 'MongoDB Atlas',
+        message: 'Frontend not built yet. Run npm run build.'
+      });
+    }
   });
 });
 
